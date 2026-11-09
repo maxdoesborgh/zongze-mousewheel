@@ -3,6 +3,8 @@
 
 Interactieve hardware-abstractie en browser-simulatie van een ESP32-S3 rotary encoder gekoppeld aan een gesimuleerd OLED micro-display.
 
+🌐 **Live Demo:** [https://maxdoesborgh.github.io/zongze-mousewheel/](https://maxdoesborgh.github.io/zongze-mousewheel/)
+
 ---
 
 ## ⚡ Direct Starten
