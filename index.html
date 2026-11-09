@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zongze Knob Study // Mousewheel Mechanic (Level 03) - ESP32-S3 Rotary Encoder</title>
+  
+  <!-- SEO & Metadata -->
+  <meta name="description" content="Interactieve simulatie van een ESP32-S3 rotary encoder met muiswiel-mechaniek en OLED micro-scherm visualisatie. Fysische cadans en haptische snij-synthese." />
+  <meta name="keywords" content="ESP32-S3, Rotary Encoder, Hardware Simulatie, Mousewheel Mechanic, Canvas Animatie, Web Audio Synthesizer, Creative Coding" />
+  <meta name="author" content="Zongze Hardware Research // Fontys" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://localhost:3000/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Zongze Knob Study // Mousewheel Mechanic (Level 03)" />
+  <meta property="og:description" content="ESP32-S3 Rotary Encoder simulatie gekoppeld aan mes-cadans en haptische Web Audio synthese." />
+  <meta property="og:locale" content="nl_NL" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Zongze Knob Study // Mousewheel Mechanic" />
+  <meta name="twitter:description" content="Hardware-abstractie van een rotary encoder naar interactieve muiswiel-cadans." />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Zongze Knob Study - Mousewheel Mechanic",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "All",
+    "description": "Hardware-abstractie en interactieve simulatie van een ESP32-S3 rotary encoder gekoppeld aan een mes-cadans op een gesimuleerd OLED display.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "EUR"
+    }
+  }
+  </script>
+
+  <!-- Typography: JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-space: #09090b;
+      --card-bg: #121215;
+      --surface-border: #27272a;
+      --text-main: #f4f4f5;
+      --text-muted: #71717a;
+      --text-subtle: #a1a1aa;
+      --accent-green: #10b981;
+      --accent-green-dark: #047857;
+      --accent-amber: #f59e0b;
+      --oled-black: #000000;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-space);
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', -apple-system, BlinkMacSystemFont, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      overflow-y: auto;
+      user-select: none;
+      padding: 24px 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Bovenbalk & Metadata */
+    header {
+      position: fixed;
+      top: 24px;
+      left: 28px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(24, 24, 27, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      margin-bottom: 6px;
+      color: var(--text-subtle);
+      border-radius: 4px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+      animation: pulse-dot 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    h1 {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+      opacity: 0.9;
+    }
+
+    /* Container */
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin-top: 40px;
+    }
+
+    /* Gesimuleerd OLED / AMOLED micro-scherm zoals bij Zongze */
+    #device-frame {
+      width: 440px;
+      height: 440px;
+      background: var(--oled-black);
+      border: 2px solid var(--surface-border);
+      border-radius: 14px;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 25px 60px -10px rgba(0, 0, 0, 0.9),
+        0 0 40px -10px rgba(16, 185, 129, 0.1);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      cursor: crosshair;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #device-frame.active-pressure {
+      border-color: rgba(16, 185, 129, 0.45);
+      box-shadow:
+        0 0 0 1px rgba(16, 185, 129, 0.2),
+        0 25px 60px -10px rgba(0, 0, 0, 0.95),
+        0 0 50px -5px rgba(16, 185, 129, 0.25);
+    }
+
+    /* Subtiel scanline raster over OLED scherm */
+    #device-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 50%,
+        rgba(0, 0, 0, 0.25) 51%
+      );
+      background-size: 100% 4px;
+      pointer-events: none;
+      opacity: 0.35;
+      z-index: 4;
+    }
+
+    canvas {
+      width: 440px;
+      height: 440px;
+      display: block;
+      z-index: 1;
+    }
+
+    /* HUD Metrics onderin het device */
+    #hud {
+      position: absolute;
+      bottom: 14px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      pointer-events: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 8px;
+      z-index: 5;
+      background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0));
+    }
+
+    .hud-val {
+      color: var(--text-main);
+      font-weight: 600;
+      transition: color 0.15s ease;
+    }
+
+    /* Actieve druk indicator balk */
+    #pressure-bar-container {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      left: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 5;
+      font-size: 9px;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+    }
+
+    .meter {
+      width: 100px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent-green);
+      transition: width 0.08s ease-out;
+      box-shadow: 0 0 6px var(--accent-green);
+    }
+
+    /* Instructies & Interactie Paneel onder het scherm */
+    #instructions {
+      margin-top: 22px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.8;
+      max-width: 460px;
+    }
+
+    #instructions kbd,
+    #instructions span.key {
+      color: var(--text-subtle);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: #18181b;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+
+    /* Mobiele / Touch & Click Fallback Knop */
+    .button-row {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .ctrl-button {
+      background: #18181b;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-subtle);
+      font-family: inherit;
+      font-size: 11px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      touch-action: manipulation;
+    }
+
+    .ctrl-button:hover {
+      background: #27272a;
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .ctrl-button:active,
+    .ctrl-button.active {
+      background: var(--accent-green-dark);
+      color: #ffffff;
+      border-color: var(--accent-green);
+      transform: translateY(1px);
+    }
+
+    footer {
+      margin-top: 28px;
+      font-size: 10px;
+      color: #52525b;
+      letter-spacing: 0.05em;
+    }
+
+    @media (max-width: 500px) {
+      header {
+        position: static;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      #device-frame, canvas {
+        width: 320px;
+        height: 320px;
+      }
+      main {
+        margin-top: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">
+      <span class="badge-dot"></span>
+      [ DOC 06 // HARDWARE-ABSTRAKTIE ]
+    </div>
+    <h1>ESP32-S3 ROTARY ENCODER &rarr; MOUSEWHEEL CADANS</h1>
+  </header>
+
+  <main>
+    <div id="device-frame" role="region" aria-label="ESP32-S3 Gesimuleerd OLED Scherm">
+      <div id="pressure-bar-container">
+        <span>ENCODER CHOP CADENCE</span>
+        <div class="meter">
+          <div id="meter-fill" class="meter-fill"></div>
+        </div>
+      </div>
+
+      <canvas id="screen" width="440" height="440" role="img" aria-label="Santoku mes en komkommer snij-animatie"></canvas>
+
+      <div id="hud">
+        <div>ROTATION SPEED: <span id="val-vel" class="hud-val">0.00</span></div>
+        <div>PRESSURE: <span id="val-press" class="hud-val">INACTIVE</span></div>
+        <div>SLICES: <span id="val-slices" class="hud-val">0</span></div>
+      </div>
+    </div>
+
+    <section id="instructions">
+      <kbd>MOUSE WHEEL</kbd> continu scrollen voor mes-cadans (rotatie)<br />
+      <kbd>MIDDENMUISKLIK</kbd> / <kbd>LINKERMUISKLIK</kbd> of <kbd>SPATIEBALK</kbd> ingedrukt houden voor snijdruk
+    </section>
+
+    <div class="button-row">
+      <button id="btn-toggle-pressure" class="ctrl-button" type="button">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>HOUD SNIJDRUK IN (HOLD PRESS)</span>
+      </button>
+
+      <button id="btn-spin-wheel" class="ctrl-button" type="button">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+        <span>IMPULS GEVEN (IMPULSE)</span>
+      </button>
+    </div>
+
+    <footer>
+      ROTARY ENCODER HARDWARE SIMULATION // WEBAUDIO HAPTIC SYNTH // HIGH-DPI CANVAS
+    </footer>
+  </main>
+
+  <script>
+    // --- 0. INITIALISATIE & HIGH-DPI CANVAS ONDERSTEUNING ---
+    const canvas = document.getElementById('screen');
+    const ctx = canvas.getContext('2d');
+    const deviceFrame = document.getElementById('device-frame');
+
+    const valVel = document.getElementById('val-vel');
+    const valPress = document.getElementById('val-press');
+    const valSlices = document.getElementById('val-slices');
+    const meterFill = document.getElementById('meter-fill');
+
+    const btnTogglePressure = document.getElementById('btn-toggle-pressure');
+    const btnSpinWheel = document.getElementById('btn-spin-wheel');
+
+    // High-DPI (Retina) Scherpte configureren
+    const BASE_WIDTH = 440;
+    const BASE_HEIGHT = 440;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = BASE_WIDTH * dpr;
+    canvas.height = BASE_HEIGHT * dpr;
+    ctx.scale(dpr, dpr);
+
+    // --- 1. STATE & WERKWERK-WISKUNDE (Procedurale inertie conform DOC 06) ---
+    let wheelVelocity = 0;
+    let toolPressure = false;
+    let totalSlices = 0;
+    let lastSliceProgress = 0;
+
+    // Snij-cyclus parameters
+    let cutCycle = 0;          // Loopt continu op met wheelVelocity
+    let vegetableLength = 220; // Resterende lengte van de komkommer
+    const slices = [];         // Vallende afgesneden schijfjes
+    const particles = [];      // Haptische sap/impact spetters
+
+    // --- 2. WEBAUDIO SYNTHESIZER VOOR HAPTISCHE CHOP-KLANK ---
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    // Geavanceerde percussieve haptische snij-sound
+    function playChopSound() {
+      try {
+        const actx = getAudioContext();
+        const now = actx.currentTime;
+
+        // 1. Lage houtige/snijdende transiënt (Body thud)
+        const osc = actx.createOscillator();
+        const gain = actx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(28, now + 0.055);
+
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.055);
+
+        osc.connect(gain);
+        gain.connect(actx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.06);
+
+        // 2. Mes-contact 'click' (hoge frequentie snij-click)
+        const clickOsc = actx.createOscillator();
+        const clickGain = actx.createGain();
+
+        clickOsc.type = 'square';
+        clickOsc.frequency.setValueAtTime(650, now);
+        clickOsc.frequency.exponentialRampToValueAtTime(80, now + 0.015);
+
+        clickGain.gain.setValueAtTime(0.12, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+
+        clickOsc.connect(clickGain);
+        clickGain.connect(actx.destination);
+
+        clickOsc.start(now);
+        clickOsc.stop(now + 0.02);
+
+      } catch (err) {
+        // Audio policy fallback
+      }
+    }
+
+    // --- 3. INPUT HANDLERS (HARDWARE & BROWSER ABSTRAKTIE) ---
+
+    // Scrollwiel: continu scrollen bouwt cadans op
+    window.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      getAudioContext();
+      
+      // Normaliseer deltaY (zowel discrete encoder ticks als trackpad swipes)
+      const delta = Math.abs(e.deltaY);
+      const normalizedDelta = Math.min(Math.max(delta, 8), 120);
+      wheelVelocity += normalizedDelta * 0.0045;
+
+      // Begrens maximale snelheid
+      if (wheelVelocity > 1.8) wheelVelocity = 1.8;
+    }, { passive: false });
+
+    // Drukknop simulatie via muisklik
+    window.addEventListener('mousedown', (e) => {
+      getAudioContext();
+      if (e.button === 0 || e.button === 1) { // Linkermuisknop of middenknop
+        setPressure(true);
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      setPressure(false);
+    });
+
+    // Toetsenbord bediening: Spatiebalk voor druk
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        getAudioContext();
+        setPressure(true);
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setPressure(false);
+      }
+    });
+
+    // Touch / On-screen Knoppen voor mobiel of muis
+    btnTogglePressure.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      getAudioContext();
+      setPressure(true);
+      btnTogglePressure.classList.add('active');
+    });
+
+    window.addEventListener('pointerup', () => {
+      setPressure(false);
+      btnTogglePressure.classList.remove('active');
+    });
+
+    btnSpinWheel.addEventListener('click', () => {
+      getAudioContext();
+      wheelVelocity += 0.45;
+      if (wheelVelocity > 1.8) wheelVelocity = 1.8;
+    });
+
+    function setPressure(state) {
+      toolPressure = state;
+      if (state) {
+        deviceFrame.classList.add('active-pressure');
+      } else {
+        deviceFrame.classList.remove('active-pressure');
+      }
+    }
+
+    // --- 4. RENDER FUNCTIES (Vector graphics geïnspireerd op Zongze's OLED look) ---
+
+    function drawCuttingBoard() {
+      ctx.save();
+      // Het strakke perspectivische snijplankje met 1px haarlijnen
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+      ctx.lineWidth = 1.5;
+
+      // Bovenoppervlak
+      ctx.beginPath();
+      ctx.moveTo(70, 310);
+      ctx.lineTo(260, 240);
+      ctx.lineTo(390, 270);
+      ctx.lineTo(190, 345);
+      ctx.closePath();
+      ctx.fillStyle = '#0f0f12';
+      ctx.fill();
+      ctx.stroke();
+
+      // Dikte / zijkant van de plank
+      ctx.fillStyle = '#08080a';
+      ctx.beginPath();
+      ctx.moveTo(70, 310);
+      ctx.lineTo(70, 324);
+      ctx.lineTo(190, 359);
+      ctx.lineTo(390, 284);
+      ctx.lineTo(390, 270);
+      ctx.lineTo(190, 345);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Fijn houtnerf / meetrooster detail op de plank
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 3; i++) {
+        const ratio = i / 4;
+        ctx.beginPath();
+        ctx.moveTo(70 + (260 - 70) * ratio, 310 + (240 - 310) * ratio);
+        ctx.lineTo(190 + (390 - 190) * ratio, 345 + (270 - 345) * ratio);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawCucumber(x, y, length) {
+      if (length <= 0) return;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(-0.35); // Ligt diagonaal op de plank
+
+      // Komkommer body (helder groen met schaduw & contour)
+      ctx.fillStyle = '#10b981';
+      ctx.strokeStyle = '#047857';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      // Ronde achterkant, rechte snijkant
+      if (ctx.roundRect) {
+        ctx.roundRect(0, -18, length, 36, [14, 0, 0, 14]);
+      } else {
+        ctx.rect(0, -18, length, 36);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      // Subtiele komkommer ribbels / textuur
+      ctx.strokeStyle = 'rgba(4, 120, 87, 0.4)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(10, -7);
+      ctx.lineTo(length - 4, -7);
+      ctx.moveTo(10, 7);
+      ctx.lineTo(length - 4, 7);
+      ctx.stroke();
+
+      // De afgesneden binnenzijde (wit/lichtgroene kern met pitjes)
+      ctx.fillStyle = '#ecfdf5';
+      ctx.strokeStyle = '#059669';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(length, 0, 9, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Zaadjes in de kern
+      ctx.fillStyle = '#a7f3d0';
+      for (let i = -10; i <= 10; i += 5) {
+        ctx.beginPath();
+        ctx.arc(length - 2, i, 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawKnife(bladeX, bladeY, angleDeg) {
+      ctx.save();
+      ctx.translate(bladeX, bladeY);
+      ctx.rotate((angleDeg * Math.PI) / 180);
+
+      // 1. Het zwarte strakke handvat
+      ctx.fillStyle = '#1c1917';
+      ctx.strokeStyle = '#57534e';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(40, -16, 95, 20, 3);
+      } else {
+        ctx.rect(40, -16, 95, 20);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      // Klinknagels op het handvat
+      ctx.fillStyle = '#a8a29e';
+      ctx.beginPath();
+      ctx.arc(60, -6, 2, 0, Math.PI * 2);
+      ctx.arc(88, -6, 2, 0, Math.PI * 2);
+      ctx.arc(115, -6, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Krop (bolster) tussen handvat en lemmet
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(36, -17, 5, 22);
+
+      // 2. Het stalen Santoku lemmet
+      ctx.fillStyle = '#e2e8f0';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.5;
+
+      ctx.beginPath();
+      ctx.moveTo(36, -18);
+      ctx.lineTo(-120, -18);                    // Bovenrug van het mes
+      ctx.quadraticCurveTo(-146, -10, -145, 12); // Ronde karakteristieke santoku neus
+      ctx.lineTo(36, 18);                       // Snede
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Snedelijn (gepolijste v-vouw glansrand)
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.moveTo(-145, 12);
+      ctx.lineTo(36, 18);
+      ctx.lineTo(36, 12);
+      ctx.lineTo(-135, 7);
+      ctx.closePath();
+      ctx.fill();
+
+      // Kuiltjes/groeven in het lemmet (anti-plak kuiltjes conform Zongze's graphic)
+      ctx.fillStyle = '#cbd5e1';
+      for (let k = -90; k <= 10; k += 18) {
+        ctx.beginPath();
+        ctx.ellipse(k, 0, 3, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    // Haptische impact micro-spatjes
+    function spawnImpactParticles(x, y) {
+      for (let i = 0; i < 5; i++) {
+        particles.push({
+          x: x + (Math.random() - 0.5) * 8,
+          y: y + (Math.random() - 0.5) * 4,
+          vx: (Math.random() - 0.5) * 3,
+          vy: -Math.random() * 2.5 - 0.5,
+          radius: 1 + Math.random() * 1.5,
+          alpha: 1.0,
+          color: Math.random() > 0.4 ? '#a7f3d0' : '#10b981'
+        });
+      }
+    }
+
+    // --- 5. ANIMATIE EN WISKUNDE LOOP ---
+    function loop() {
+      // Achtergrond schoonmaken (diep OLED zwart)
+      ctx.fillStyle = '#050507';
+      ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+      // A. Inertie & wrijving (procedurale demping per frame conform DOC 06)
+      wheelVelocity *= 0.91; // Frictie conform specificatie
+      if (wheelVelocity < 0.001) wheelVelocity = 0;
+
+      // Alleen snijbeweging opbouwen als de cadans actief is
+      cutCycle += wheelVelocity * 4.5;
+
+      // B. Mes-kinematica: op- en neerwaartse snijdans
+      // Sinusgolf bepaalt de hoogte van de mespunt en rotatiehoek
+      const wave = Math.sin(cutCycle);
+
+      // Als er druk wordt uitgeoefend, daalt het mes dieper af op de plank
+      const baseBladeY = toolPressure ? 205 : 170;
+      const bladeY = baseBladeY + wave * 32;
+      const bladeAngle = -18 + wave * 14;
+
+      // C. Snijdetectie (wanneer mes neerkomt én er snijdruk is)
+      if (toolPressure && wave > 0.94 && (cutCycle - lastSliceProgress > 2.5)) {
+        lastSliceProgress = cutCycle;
+        totalSlices++;
+        valSlices.textContent = totalSlices;
+        playChopSound();
+        spawnImpactParticles(215, 245);
+
+        // Spawn een vallend schijfje
+        slices.push({
+          x: 215,
+          y: 245,
+          vx: 1.5 + Math.random() * 2,
+          vy: -2 - Math.random() * 2,
+          rot: Math.random() * 0.4,
+          vRot: 0.08,
+          alpha: 1.0
+        });
+
+        // Verklein de resterende groente
+        vegetableLength = Math.max(0, vegetableLength - 3.5);
+      }
+
+      // Automatische reset wanneer groente opgesneden is
+      if (vegetableLength <= 0 && slices.length === 0) {
+        vegetableLength = 220;
+      }
+
+      // D. Teken alle lagen in perspectief
+      drawCuttingBoard();
+
+      // Teken de komkommer die op de plank rust
+      drawCucumber(80, 285, vegetableLength);
+
+      // Teken en update de vallende plakjes
+      for (let i = slices.length - 1; i >= 0; i--) {
+        const s = slices[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vy += 0.35; // Zwaartekracht
+        s.rot += s.vRot;
+
+        // Stuiter op de grond/plank
+        if (s.y > 360) {
+          s.y = 360;
+          s.vx *= 0.6;
+          s.vy = -s.vy * 0.3;
+          s.vRot *= 0.5;
+        }
+
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.rotate(s.rot);
+        ctx.fillStyle = '#ecfdf5';
+        ctx.strokeStyle = '#047857';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 10, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Pitjes in gesneden plakje
+        ctx.fillStyle = '#a7f3d0';
+        ctx.beginPath();
+        ctx.arc(0, -5, 1.2, 0, Math.PI * 2);
+        ctx.arc(0, 5, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        // Verwijder oude schijfjes die buiten beeld vallen
+        if (s.x > 460) slices.splice(i, 1);
+      }
+
+      // Teken particles / spetters
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.2;
+        p.alpha -= 0.04;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Teken het snijdende santoku mes eroverheen
+      drawKnife(260, bladeY, bladeAngle);
+
+      // E. HUD waarden bijwerken
+      valVel.textContent = wheelVelocity.toFixed(2);
+      
+      const cadPercent = Math.min(100, Math.round((wheelVelocity / 1.5) * 100));
+      meterFill.style.width = cadPercent + '%';
+
+      if (toolPressure) {
+        valPress.textContent = 'ACTIVE (DOWN)';
+        valPress.style.color = '#10b981';
+      } else {
+        valPress.textContent = 'INACTIVE (NO GRIP)';
+        valPress.style.color = '#71717a';
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    // Start animatielus
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
+

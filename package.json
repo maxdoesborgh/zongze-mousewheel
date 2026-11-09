@@ -1,0 +1,24 @@
+{
+  "name": "zongze-mousewheel-mechanic",
+  "version": "1.0.0",
+  "description": "Zongze Knob Study // ESP32-S3 Rotary Encoder to Mousewheel Mechanic Simulation",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "esp32",
+    "rotary-encoder",
+    "mousewheel",
+    "canvas",
+    "web-audio"
+  ],
+  "author": "Fontys / Zongze Hardware Research",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}
+
